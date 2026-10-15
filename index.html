@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>海の魚クイズ</title>
+<meta name="description" content="釣りや海の魚が好きな人に挑戦してほしい、4択の海の魚クイズ全30問。">
+<meta name="theme-color" content="#0b1a26">
+
+<!-- LINE・SNSでURLを送ったときに表示されるタイトルと画像（OGP） -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="海の魚クイズ">
+<meta property="og:title" content="海の魚クイズ｜全30問">
+<meta property="og:description" content="釣りや海の魚が好きな人に挑戦してほしい、4択の海の魚クイズ。あなたは何問わかる？">
+<meta property="og:url" content="https://hisasa792-cpu.github.io/sakana-qqq/">
+<meta property="og:image" content="https://hisasa792-cpu.github.io/sakana-qqq/img/2026-10-15_ogp.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
+
+<style>
+:root {
+  --bg: #0b1a26;
+  --text: #f4f8fb;
+  --sub: rgba(244, 248, 251, 0.75);
+  --accent: #e4ff3a;
+  --card: rgba(8, 22, 34, 0.55);
+  --line: rgba(255, 255, 255, 0.22);
+  --ok: #3ddc84;
+  --ng: #ff5c6c;
+}
+
+* { box-sizing: border-box; }
+
+/* 背景色は html にだけ付ける（body に付けると背景写真の上にかぶるため） */
+html { background: var(--bg); }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  color: var(--text);
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 背景写真：2枚を重ねて、ふわっと入れ替える */
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: center / cover no-repeat;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 1s ease, transform 6s ease-out;
+}
+.bg.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 背景を暗くして文字を読みやすくする層 */
+.shade {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg,
+    rgba(6, 16, 26, 0.70) 0%,
+    rgba(6, 16, 26, 0.45) 40%,
+    rgba(6, 16, 26, 0.65) 75%,
+    rgba(6, 16, 26, 0.85) 100%);
+}
+
+.app {
+  max-width: 34rem;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 24px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 上部：何問目／30問 と進み具合のバー */
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 0 12px;
+}
+.top-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-weight: 700;
+}
+.top-title {
+  font-size: 0.95rem;
+  color: var(--sub);
+  letter-spacing: 0.06em;
+}
+.counter {
+  font-size: 1.15rem;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.counter b {
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+.bar {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(228, 255, 58, 0.7);
+  transition: width 0.4s ease;
+}
+
+/* すりガラス風のカード */
+.card {
+  background: var(--card);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 20px 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.level {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--sub);
+  margin-bottom: 10px;
+}
+.level span { color: var(--accent); letter-spacing: 0.1em; }
+
+.question {
+  margin: 0 0 18px;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  font-weight: 700;
+}
+
+.choices {
+  display: grid;
+  gap: 12px;
+}
+
+button {
+  font: inherit;
+  touch-action: manipulation;
+}
+
+.choice {
+  width: 100%;
+  min-height: 60px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 1.12rem;
+  font-weight: 700;
+  text-align: left;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.choice:active { transform: scale(0.98); }
+@media (hover: hover) {
+  .choice:not(:disabled):hover {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.14);
+  }
+}
+.choice:disabled { cursor: default; opacity: 0.55; }
+.choice.correct {
+  opacity: 1;
+  border-color: var(--ok);
+  background: rgba(61, 220, 132, 0.25);
+}
+.choice.wrong {
+  opacity: 1;
+  border-color: var(--ng);
+  background: rgba(255, 92, 108, 0.25);
+}
+.choice .mark { float: right; font-size: 1.2rem; }
+
+/* 答えたあとの正解・解説 */
+.feedback {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border-left: 5px solid var(--ok);
+  animation: rise 0.3s ease;
+}
+.feedback.ng { border-left-color: var(--ng); }
+.feedback h2 {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+}
+.feedback .answer {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.feedback .explain {
+  margin: 0;
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+.primary {
+  display: block;
+  width: 100%;
+  min-height: 60px;
+  margin-top: 16px;
+  border: none;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #0b1a26;
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(228, 255, 58, 0.45);
+}
+.primary:active { transform: scale(0.98); }
+
+/* スタート画面・結果画面 */
+.center {
+  margin: auto 0;
+  text-align: center;
+}
+.center h1 {
+  margin: 0 0 8px;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.center .lead {
+  margin: 0 0 4px;
+  color: var(--sub);
+  line-height: 1.7;
+}
+.score {
+  margin: 12px 0 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.score b {
+  font-size: 3.2rem;
+  color: var(--accent);
+  text-shadow: 0 0 14px rgba(228, 255, 58, 0.45);
+}
+.comment {
+  margin: 8px 0 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.hidden { display: none !important; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg, .feedback, .bar span { transition: none; animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="bg" id="bgA"></div>
+<div class="bg" id="bgB"></div>
+<div class="shade"></div>
+
+<main class="app">
+  <!-- スタート画面 -->
+  <section id="start" class="center">
+    <div class="card">
+      <h1>🐟 海の魚クイズ</h1>
+      <p class="lead">釣りや海の魚が好きな人に挑戦してほしい<br>4択クイズ 全30問</p>
+      <p class="lead">やさしい問題から少し難しい問題まで。<br>毎回、出る順番が変わります。</p>
+      <button class="primary" id="startBtn">スタート</button>
+    </div>
+  </section>
+
+  <!-- 問題画面 -->
+  <section id="quiz" class="hidden">
+    <div class="top">
+      <div class="top-row">
+        <span class="top-title">海の魚クイズ</span>
+        <span class="counter"><b id="num">1</b>問目／30問</span>
+      </div>
+      <div class="bar"><span id="bar"></span></div>
+    </div>
+    <div class="card">
+      <div class="level">難しさ <span id="level"></span></div>
+      <p class="question" id="question"></p>
+      <div class="choices" id="choices"></div>
+      <div id="feedback" class="feedback hidden">
+        <h2 id="judge"></h2>
+        <p class="answer" id="answer"></p>
+        <p class="explain" id="explain"></p>
+      </div>
+      <button class="primary hidden" id="nextBtn">次の問題へ ▶</button>
+    </div>
+  </section>
+
+  <!-- 結果画面 -->
+  <section id="result" class="center hidden">
+    <div class="card">
+      <h1>結果発表</h1>
+      <p class="score"><b id="score">0</b> ／ 30問 正解</p>
+      <p class="comment" id="comment"></p>
+      <button class="primary" id="againBtn">もう一度遊ぶ</button>
+    </div>
+  </section>
+</main>
+
+<script>
+// 問題データ。choices の先頭が正解（表示するときにシャッフルする）
+// level：1=やさしい、2=ふつう、3=少し難しい
+const QUESTIONS = [
+  // ---- やさしい ----
+  { level: 1, q: "世界でいちばん大きい魚はどれ？",
+    choices: ["ジンベエザメ", "ホホジロザメ", "シロナガスクジラ", "マンボウ"],
+    explain: "大きいものは全長10mを超える、魚類で最大の種類です。性格はおとなしく、プランクトンや小魚を吸い込んで食べます。（シロナガスクジラは魚ではなく哺乳類）" },
+  { level: 1, q: "寿司ネタの「トロ」がとれる、海を回遊する大きな魚は？",
+    choices: ["マグロ", "フグ", "カレイ", "タツノオトシゴ"],
+    explain: "トロは脂の多いおなか側の身です。マグロは口を開けて泳ぎ続け、えらに水を通して呼吸しています。" },
+  { level: 1, q: "両目が体の片側に寄っていて、海底で平たくなって暮らす魚は？",
+    choices: ["カレイ", "サバ", "イワシ", "ウナギ"],
+    explain: "生まれたばかりのころは普通の魚の形ですが、成長とともに片方の目が反対側へ移動していきます。" },
+  { level: 1, q: "成長とともに呼び名が変わる「出世魚」として有名なのは？",
+    choices: ["ブリ", "マダイ", "サンマ", "キス"],
+    explain: "関東ではワカシ→イナダ→ワラサ→ブリ、関西ではツバス→ハマチ→メジロ→ブリのように、地域によって呼び名も変わります。" },
+  { level: 1, q: "オスのおなかの袋で子どもを育てる魚は？",
+    choices: ["タツノオトシゴ", "クマノミ", "ハゼ", "フグ"],
+    explain: "メスがオスのおなかの「育児のう」に卵を産み、オスが稚魚を産み出します。こんな姿ですが、れっきとした魚の仲間です。" },
+  { level: 1, q: "イソギンチャクの中に隠れて暮らすことで知られる魚は？",
+    choices: ["クマノミ", "カワハギ", "アジ", "サンマ"],
+    explain: "クマノミは体の表面の粘液で守られていて、イソギンチャクの毒針に刺されにくいため、敵から身を守るすみかにしています。" },
+  { level: 1, q: "漢字で「秋刀魚」と書く魚は？",
+    choices: ["サンマ", "タチウオ", "サワラ", "カジキ"],
+    explain: "秋においしい時期を迎え、刀のように細長く光る姿から、この字が当てられました。" },
+  { level: 1, q: "砂浜からの投げ釣りで人気の、白っぽくて細長い、天ぷらの定番の魚は？",
+    choices: ["シロギス", "カサゴ", "メバル", "アイナメ"],
+    explain: "砂地の海底にすむ魚です。群れでいることが多いので、1匹釣れたら同じ場所で続けて釣れることもあります。" },
+  { level: 1, q: "大きな胸びれを広げて、海面の上を滑空する魚は？",
+    choices: ["トビウオ", "サヨリ", "カツオ", "イワシ"],
+    explain: "大きな魚などに追われたときに水面から飛び出し、胸びれをつばさのように広げて、かなり長い距離を滑空します。" },
+  { level: 1, q: "するどい歯を持ち、磯の岩の穴にすむヘビのような姿の魚は？",
+    choices: ["ウツボ", "カサゴ", "メバル", "ボラ"],
+    explain: "ヘビのように見えますが魚の仲間です。磯釣りでかかることもあり、かまれると大けがをするので注意が必要です。" },
+
+  // ---- ふつう ----
+  { level: 2, q: "「左ヒラメに右カレイ」。目のある面を上、おなかを手前に置いたとき、頭が左を向くのはどっち？",
+    choices: ["ヒラメ", "カレイ", "どちらも左", "どちらも右"],
+    explain: "ヒラメとカレイの見分け方として知られる言葉です。ただしヌマガレイのような例外もあり、口の大きさや歯の形でも見分けます。" },
+  { level: 2, q: "フグが持っている毒の名前は？",
+    choices: ["テトロドトキシン", "ソラニン", "カフェイン", "ヒスタミン"],
+    explain: "主に肝臓や卵巣などにふくまれ、加熱しても毒は消えません。フグの調理には、都道府県ごとに決められた資格が必要です。" },
+  { level: 2, q: "アジの体の側面、しっぽの近くに並ぶ硬いトゲのようなうろこを何という？",
+    choices: ["ゼイゴ", "エラブタ", "アブラビレ", "ウキブクロ"],
+    explain: "「ぜんご」とも呼ばれる硬いうろこです。口に当たると痛いので、料理の前に包丁でそぎ取ります。" },
+  { level: 2, q: "小さなおちょぼ口でエサだけを上手にとる「エサ取り名人」。肝もおいしいこの魚は？",
+    choices: ["カワハギ", "イワシ", "ボラ", "サヨリ"],
+    explain: "硬い皮を手ではいで料理することから、この名前がつきました。アタリ（魚がエサに触れた合図）がわかりにくく、釣りの腕が試される魚です。" },
+  { level: 2, q: "頭を上にして立ち泳ぎする姿が見られる、銀色で細長い魚は？",
+    choices: ["タチウオ", "サンマ", "サヨリ", "ダツ"],
+    explain: "タチウオにはうろこがなく、体の表面は銀色の層でおおわれています。夜釣りやルアー釣りで人気の魚です。" },
+  { level: 2, q: "釣りあげたときに素手でつかむと危ない、背びれのトゲに毒を持つ小さな魚は？",
+    choices: ["ハオコゼ", "メジナ", "アジ", "キス"],
+    explain: "刺されるとズキズキと強く痛みます。ゴンズイやアイゴなど、ひれに毒のトゲを持つ魚はほかにもいるので、知らない魚はタオルやつかみ具を使いましょう。" },
+  { level: 2, q: "釣り人が「チヌ」と呼ぶ魚は？",
+    choices: ["クロダイ", "メジナ", "カサゴ", "スズキ"],
+    explain: "主に西日本で使われるクロダイの呼び名です。大阪湾の古い呼び名「茅渟（ちぬ）の海」に由来するといわれています。" },
+  { level: 2, q: "大きな目が特徴で、名前の由来にもなっている、夜釣りで人気の根魚（岩場にすむ魚）は？",
+    choices: ["メバル", "キス", "サヨリ", "ボラ"],
+    explain: "「目が張っている」ことから名前がついたといわれます。岩場や藻場にすみ、夜になると活発にエサを追います。" },
+  { level: 2, q: "魚へんに「弱」と書く「鰯」は、どの魚？",
+    choices: ["イワシ", "サンマ", "キス", "アジ"],
+    explain: "水から出すとすぐに弱ってしまうことが、字や名前の由来といわれています。" },
+  { level: 2, q: "サメの歯の特徴として正しいのはどれ？",
+    choices: ["抜けても何度も生え替わる", "一生同じ歯を使い続ける", "子どもの歯から大人の歯へ一度だけ生え替わる", "歯はなく、あごの骨でかみつく"],
+    explain: "サメの口の内側には予備の歯が何列も並んでいて、前の歯が抜けると次の歯が前へ出てきます。" },
+  { level: 2, q: "春〜初夏の「初ガツオ」に対して、秋に南へ下ってくる、脂ののったカツオを何という？",
+    choices: ["戻りガツオ", "帰りガツオ", "冬ガツオ", "落ちガツオ"],
+    explain: "カツオは春から夏に黒潮にのって北へ向かい、秋に南へ戻ります。戻りガツオはエサをたくさん食べて脂がのっています。" },
+  { level: 2, q: "若いうちは白黒のしま模様がはっきりしていて、「磯の王者」とも呼ばれる魚は？",
+    choices: ["イシダイ", "マダイ", "メジナ", "カサゴ"],
+    explain: "硬い歯でサザエやウニもかみくだきます。年をとった個体（特にオス）はしまが薄れて口のまわりが黒くなり、「クチグロ」と呼ばれます。" },
+
+  // ---- 少し難しい ----
+  { level: 3, q: "マダイの体のきれいな赤い色は、主に何によるもの？",
+    choices: ["エサにふくまれる色素", "日焼け", "血液の色が透けている", "水温の低さ"],
+    explain: "エビやカニなどにふくまれる色素（アスタキサンチン）を取りこんで赤くなります。養殖では、色をよくするためにこの色素をエサに加えることがあります。" },
+  { level: 3, q: "「セイゴ → フッコ → ○○」と呼び名が変わる出世魚は？",
+    choices: ["スズキ", "ブリ", "ボラ", "クロダイ"],
+    explain: "関東での呼び方です。ルアー釣りで人気の「シーバス」も、このスズキのことです。" },
+  { level: 3, q: "「とどのつまり」の「トド」は、どの魚のいちばん大きくなったときの呼び名から来ている？",
+    choices: ["ボラ", "ブリ", "スズキ", "サワラ"],
+    explain: "ボラはオボコ→イナ→ボラ→トドと呼び名が変わる出世魚です。それ以上は名前が変わらないことから「結局」という意味になったとされます。" },
+  { level: 3, q: "サメやエイの骨の特徴として正しいのは？",
+    choices: ["全身の骨が軟骨でできている", "骨がまったくない", "背骨だけが軟骨", "人間と同じ硬い骨"],
+    explain: "サメやエイは「軟骨魚類」と呼ばれるグループです。多くの魚が持つ浮き袋もありません。" },
+  { level: 3, q: "マンボウはどうやって泳ぐ？",
+    choices: ["背びれと尻びれを左右にあおいで泳ぐ", "大きな尾びれを振って泳ぐ", "胸びれを鳥のように羽ばたかせて泳ぐ", "まったく泳げず、潮に流されるだけ"],
+    explain: "マンボウには普通の尾びれがなく、代わりに「舵びれ（かじびれ）」があります。上下に長く伸びた背びれと尻びれをあおいで進みます。" },
+  { level: 3, q: "卵ではなく、おなかの中でふ化させた子どもを産む海の魚は？",
+    choices: ["カサゴ", "アジ", "マダイ", "キス"],
+    explain: "カサゴやメバルは、体の中で卵をふ化させてから稚魚を産む「卵胎生（らんたいせい）」の魚です。" },
+  { level: 3, q: "寿司ネタの「コハダ」は、大きくなると何と呼ばれる魚？",
+    choices: ["コノシロ", "サバ", "イワシ", "アジ"],
+    explain: "シンコ→コハダ→ナカズミ→コノシロと呼び名が変わる出世魚です。" },
+  { level: 3, q: "群れが団子のように固まって泳ぐ「○○玉」で知られる、海にすむナマズの仲間は？",
+    choices: ["ゴンズイ", "イワシ", "ハゼ", "メダカ"],
+    explain: "ゴンズイは背びれと胸びれに毒のトゲがあります。夜釣りでよくかかるので、素手でさわらないようにしましょう。" },
+];
+
+const TOTAL = QUESTIONS.length;
+const LEVEL_MARK = { 1: "★", 2: "★★", 3: "★★★" };
+const BG_COUNT = 10;
+const BG_FILES = Array.from({ length: BG_COUNT },
+  (_, i) => `img/2026-10-15_bg${String(i + 1).padStart(2, "0")}.jpg`);
+
+const $ = (id) => document.getElementById(id);
+
+let order = [];
+let index = 0;
+let score = 0;
+let answered = false;
+
+// 配列をランダムに並べ替える（フィッシャー–イェーツのシャッフル）
+function shuffle(list) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---- 背景の切り替え（直前と同じ写真は出さない） ----
+const layers = [$("bgA"), $("bgB")];
+let front = 0;
+let currentBg = -1;
+
+function changeBackground() {
+  let next;
+  do { next = Math.floor(Math.random() * BG_COUNT); } while (next === currentBg);
+  currentBg = next;
+  const img = new Image();
+  img.onload = () => {
+    const back = layers[1 - front];
+    back.style.backgroundImage = `url("${BG_FILES[next]}")`;
+    back.classList.add("show");
+    layers[front].classList.remove("show");
+    front = 1 - front;
+  };
+  img.src = BG_FILES[next];
+}
+
+// ---- 画面の切り替え ----
+function showScreen(name) {
+  for (const id of ["start", "quiz", "result"]) {
+    $(id).classList.toggle("hidden", id !== name);
+  }
+  window.scrollTo(0, 0);
+}
+
+function startGame() {
+  order = shuffle(QUESTIONS);
+  index = 0;
+  score = 0;
+  showScreen("quiz");
+  showQuestion();
+}
+
+function showQuestion() {
+  const item = order[index];
+  answered = false;
+  $("num").textContent = index + 1;
+  $("bar").style.width = `${(index / TOTAL) * 100}%`;
+  $("level").textContent = LEVEL_MARK[item.level];
+  $("question").textContent = item.q;
+  $("feedback").classList.add("hidden");
+  $("nextBtn").classList.add("hidden");
+
+  const box = $("choices");
+  box.innerHTML = "";
+  for (const text of shuffle(item.choices)) {
+    const btn = document.createElement("button");
+    btn.className = "choice";
+    btn.textContent = text;
+    btn.addEventListener("click", () => answer(btn, text));
+    box.appendChild(btn);
+  }
+  changeBackground();
+  window.scrollTo(0, 0);
+}
+
+function answer(btn, text) {
+  if (answered) return;  // 連打で2回答えないようにする
+  answered = true;
+  const item = order[index];
+  const correctText = item.choices[0];
+  const isCorrect = text === correctText;
+  if (isCorrect) score++;
+
+  for (const b of $("choices").children) {
+    b.disabled = true;
+    if (b.textContent === correctText) {
+      b.classList.add("correct");
+      b.insertAdjacentHTML("beforeend", '<span class="mark">○</span>');
+    } else if (b === btn) {
+      b.classList.add("wrong");
+      b.insertAdjacentHTML("beforeend", '<span class="mark">×</span>');
+    }
+  }
+
+  const fb = $("feedback");
+  fb.classList.toggle("ng", !isCorrect);
+  $("judge").textContent = isCorrect ? "⭕ 正解！" : "❌ 残念…";
+  $("answer").textContent = `正解：${correctText}`;
+  $("explain").textContent = item.explain;
+  fb.classList.remove("hidden");
+  $("bar").style.width = `${((index + 1) / TOTAL) * 100}%`;
+
+  const next = $("nextBtn");
+  next.textContent = index === TOTAL - 1 ? "結果を見る ▶" : "次の問題へ ▶";
+  next.classList.remove("hidden");
+  next.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function nextQuestion() {
+  index++;
+  if (index < TOTAL) {
+    showQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function showResult() {
+  $("score").textContent = score;
+  let comment;
+  if (score === TOTAL) comment = "全問正解！ あなたは海の魚マスターです 🎣";
+  else if (score >= 24) comment = "すばらしい！ かなりの釣り通ですね。";
+  else if (score >= 15) comment = "いい感じ！ 海の魚にくわしいですね。";
+  else comment = "次の釣行の前に、もう一度チャレンジ！";
+  $("comment").textContent = comment;
+  changeBackground();
+  showScreen("result");
+}
+
+$("startBtn").addEventListener("click", startGame);
+$("nextBtn").addEventListener("click", nextQuestion);
+$("againBtn").addEventListener("click", startGame);
+
+changeBackground();
+</script>
+</body>
+</html>
