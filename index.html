@@ -94,6 +94,7 @@ html, body {
   align-items: baseline;
   justify-content: space-between;
   font-weight: 700;
+  padding-right: 54px;  /* 右上の音ボタンと重ならないように空ける */
 }
 .top-title {
   font-size: 0.95rem;
@@ -274,6 +275,32 @@ button {
   line-height: 1.6;
 }
 
+/* 右上の音のオン・オフボタン */
+.sound-btn {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 10px);
+  right: max(12px, calc((100vw - 34rem) / 2 + 12px));
+  z-index: 10;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: rgba(8, 22, 34, 0.6);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--text);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.sound-btn[aria-pressed="false"] { opacity: 0.7; }
+
+.note {
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  color: var(--sub);
+}
+
 .hidden { display: none !important; }
 
 @keyframes rise {
@@ -290,6 +317,7 @@ button {
 <div class="bg" id="bgA"></div>
 <div class="bg" id="bgB"></div>
 <div class="shade"></div>
+<button class="sound-btn" id="soundBtn" type="button" aria-label="効果音" aria-pressed="true">🔊</button>
 
 <main class="app">
   <!-- スタート画面 -->
@@ -299,6 +327,7 @@ button {
       <p class="lead">釣りや海の魚が好きな人に挑戦してほしい<br>4択クイズ 全30問</p>
       <p class="lead">やさしい問題から少し難しい問題まで。<br>毎回、出る順番が変わります。</p>
       <button class="primary" id="startBtn">スタート</button>
+      <p class="note">🔇 iPhoneはマナーモードのとき、効果音が鳴らないことがあります</p>
     </div>
   </section>
 
@@ -479,6 +508,103 @@ function changeBackground() {
   img.src = BG_FILES[next];
 }
 
+// ---- 効果音（Web Audio API でプログラムから音を作る） ----
+const SOUND_KEY = "sakanaQuizSound";
+let audioCtx = null;
+let soundOn = loadSoundSetting();
+
+// 前回のオン・オフ設定を読む（読めないときはオン）
+function loadSoundSetting() {
+  try {
+    return localStorage.getItem(SOUND_KEY) !== "off";
+  } catch (e) {
+    return true;
+  }
+}
+
+function saveSoundSetting() {
+  try {
+    localStorage.setItem(SOUND_KEY, soundOn ? "on" : "off");
+  } catch (e) {
+    // 保存できない環境（プライベートモードなど）では何もしない
+  }
+}
+
+// スマホはタップしたときでないと音を出せないので、ボタンを押したときに準備する
+function initAudio() {
+  try {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch (e) {
+    audioCtx = null;
+  }
+}
+
+// 1つの音を鳴らす。start 秒後から dur 秒間。終わりは少しずつ小さくする
+function tone(freq, start, dur, type, volume) {
+  const t = audioCtx.currentTime + start;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(volume, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.05);
+}
+
+const SOUNDS = {
+  // ピンポーン：高い音 → 少し低い音
+  correct() {
+    tone(1318.5, 0, 0.2, "sine", 0.3);      // ミ
+    tone(1046.5, 0.17, 0.6, "sine", 0.3);   // ド
+  },
+  // ブブー：低い音を短く2回
+  wrong() {
+    tone(150, 0, 0.22, "square", 0.08);
+    tone(150, 0.28, 0.4, "square", 0.08);
+  },
+  // パパパパーン：ドミソドと上がるファンファーレ
+  result() {
+    tone(523.3, 0, 0.14, "triangle", 0.3);   // ド
+    tone(659.3, 0.14, 0.14, "triangle", 0.3); // ミ
+    tone(784.0, 0.28, 0.14, "triangle", 0.3); // ソ
+    tone(1046.5, 0.44, 0.8, "triangle", 0.3); // 高いド
+    tone(784.0, 0.44, 0.8, "triangle", 0.15); // 和音の下の音
+  },
+};
+
+function playSound(name) {
+  if (!soundOn) return;
+  initAudio();
+  if (!audioCtx) return;
+  try {
+    SOUNDS[name]();
+  } catch (e) {
+    // 音が鳴らなくてもクイズは続けられるようにする
+  }
+}
+
+function updateSoundButton() {
+  const btn = $("soundBtn");
+  btn.textContent = soundOn ? "🔊" : "🔇";
+  btn.setAttribute("aria-pressed", String(soundOn));
+  btn.setAttribute("aria-label", soundOn ? "効果音：オン（押すとオフ）" : "効果音：オフ（押すとオン）");
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  saveSoundSetting();
+  updateSoundButton();
+  if (soundOn) initAudio();
+}
+
 // ---- 画面の切り替え ----
 function showScreen(name) {
   for (const id of ["start", "quiz", "result"]) {
@@ -488,6 +614,7 @@ function showScreen(name) {
 }
 
 function startGame() {
+  initAudio();  // 「スタート」「もう一度遊ぶ」を押したときに音の準備をする
   order = shuffle(QUESTIONS);
   index = 0;
   score = 0;
@@ -525,6 +652,7 @@ function answer(btn, text) {
   const correctText = item.choices[0];
   const isCorrect = text === correctText;
   if (isCorrect) score++;
+  playSound(isCorrect ? "correct" : "wrong");
 
   for (const b of $("choices").children) {
     b.disabled = true;
@@ -570,9 +698,12 @@ function showResult() {
   $("comment").textContent = comment;
   changeBackground();
   showScreen("result");
+  playSound("result");
 }
 
 $("startBtn").addEventListener("click", startGame);
+$("soundBtn").addEventListener("click", toggleSound);
+updateSoundButton();
 $("nextBtn").addEventListener("click", nextQuestion);
 $("againBtn").addEventListener("click", startGame);
 
